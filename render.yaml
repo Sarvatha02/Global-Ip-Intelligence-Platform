@@ -1,71 +1,50 @@
 services:
-  # ----------------------------------------------------------------------
-  # 1. Backend Service (Spring Boot)
-  # ----------------------------------------------------------------------
+  # 1. Backend (Docker)
   - type: web
-    name: global-ip-backend
+    name: ip-platform-backend
     env: docker
     dockerContext: backend
     dockerfilePath: backend/Dockerfile
     plan: free
-    region: ohio
     envVars:
       - key: DB_URL
         fromDatabase:
-          name: ip-intelligence-db
+          name: ip-platform-db
           property: connectionString
       - key: DB_USERNAME
         fromDatabase:
-          name: ip-intelligence-db
+          name: ip-platform-db
           property: user
       - key: DB_PASSWORD
         fromDatabase:
-          name: ip-intelligence-db
+          name: ip-platform-db
           property: password
       - key: GEMINI_API_KEY
-        sync: false
       - key: SERPAPI_KEY
-        sync: false
       - key: MAIL_USERNAME
-        sync: false
       - key: MAIL_PASSWORD
-        sync: false
       - key: FIREBASE_CONFIG_JSON
-        sync: false
       - key: CORS_ALLOWED_ORIGINS
-        value: https://global-ip-frontend.onrender.com
+        value: https://ip-platform-frontend.onrender.com
 
-  # ----------------------------------------------------------------------
-  # 2. Frontend Service (Static Site)
-  # ----------------------------------------------------------------------
+  # 2. Frontend (Static Site)
   - type: static
-    name: global-ip-frontend
+    name: ip-platform-frontend
     env: static
     rootDir: frontend
     buildCommand: npm install && npm run build
     publishDir: dist
     envVars:
       - key: VITE_API_BASE_URL
-        value: https://global-ip-backend.onrender.com/api
+        value: https://ip-platform-backend.onrender.com/api
       - key: VITE_RAZORPAY_KEY_ID
-        sync: false
       - key: VITE_FIREBASE_API_KEY
-        sync: false
       - key: VITE_FIREBASE_AUTH_DOMAIN
-        sync: false
       - key: VITE_FIREBASE_PROJECT_ID
-        sync: false
       - key: VITE_FIREBASE_STORAGE_BUCKET
-        sync: false
       - key: VITE_FIREBASE_MESSAGING_SENDER_ID
-        sync: false
       - key: VITE_FIREBASE_APP_ID
-        sync: false
 
-# ----------------------------------------------------------------------
-# 3. Database (PostgreSQL)
-# ----------------------------------------------------------------------
 databases:
-  - name: ip-intelligence-db
+  - name: ip-platform-db
     plan: free
-    region: ohio
