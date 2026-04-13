@@ -1,0 +1,50 @@
+# ==========================================
+# 1. OS & IDE Specific
+# ==========================================
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.project
+.settings/
+.classpath
+
+# ==========================================
+# 2. Frontend (React / Vite / Node)
+# ==========================================
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+
+# ==========================================
+# 3. Backend (Java / Spring Boot / Maven)
+# ==========================================
+target/
+*.class
+*.jar
+*.war
+.mvn/wrapper/maven-wrapper.jar
+
+# ==========================================
+# 4. Environment & Keys (CRITICAL SECURITY)
+# ==========================================
+# Frontend Environment variables
+.env
+.env.local
+.env.development
+.env.production
+
+# Backend Service Account Keys (Firebase/Google Cloud)
+# This ignores any .json file in the config or resources folder
+backend/src/main/resources/*.json
+service-account-file.json
+
+# ==========================================
+# 5. Database (Local persistence)
+# ==========================================
+*.mv.db
+*.trace.db

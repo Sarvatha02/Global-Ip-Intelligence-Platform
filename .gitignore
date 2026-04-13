@@ -1,0 +1,55 @@
+# ----------------------------------------------------------------------
+# 1. BUILD ARTIFACTS, DEPENDENCIES, AND TEMPORARY FILES
+# ----------------------------------------------------------------------
+
+# Maven/Java Build Output
+/backend/target/        # Compiled Java classes and JAR/WAR files
+*.class                 # Compiled Java classes
+*.jar
+*.war
+*.ear
+*.log
+
+# Node/Vite Build Output
+/frontend/node_modules/ # Node dependencies
+/frontend/dist/         # Compiled frontend output
+/frontend/dist-ssr/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Log files (general)
+logs/
+temp/
+*.tmp
+
+# ----------------------------------------------------------------------
+# 2. IDE AND OS SPECIFIC FILES
+# ----------------------------------------------------------------------
+
+# IntelliJ IDEA specific files
+.idea/
+
+# VS Code specific files
+.vscode/                # Ignore all VS Code settings
+!.vscode/extensions.json # EXCEPT: Allow recommended extensions file to be tracked
+
+# Operating System Files
+.DS_Store               # Mac OS X
+Thumbs.db               # Windows
+
+# ----------------------------------------------------------------------
+# 3. ENVIRONMENT AND CONFIGURATION FILES
+# ----------------------------------------------------------------------
+
+# Environment Variables (CRITICAL for security)
+.env                    # Generic .env file
+.env.* # All environment-specific files (e.g., .env.development, .env.local)
+
+# Other Temporary Configuration Files
+*.local
+*.zip
+
+# Secrets (Firebase, etc.)
+backend/src/main/resources/*.json
+serviceAccountKey.json

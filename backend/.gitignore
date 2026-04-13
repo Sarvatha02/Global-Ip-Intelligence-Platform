@@ -1,0 +1,44 @@
+# Compiled class files
+*.class
+target/
+*.jar
+*.war
+*.ear
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# IDE Files
+.idea/
+*.iml
+*.iws
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.h2.db
+
+# Firebase Service Account Key (CRITICAL - Never commit!)
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+
+# Application Properties
+src/main/resources/application.properties
+
+# Environment Variables
+.env
+.env.local
+.env.production
