@@ -34,12 +34,13 @@ public class FirebaseConfig {
             // 🔍 CHECK 2: Try Loading from GOOGLE_APPLICATION_CREDENTIALS path
             if (serviceAccount == null) {
                 String envPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
-            if (envPath != null && !envPath.isEmpty()) {
-                System.out.println("🌍 Loading Firebase from ENV Path: " + envPath);
-                try {
-                    serviceAccount = new FileInputStream(envPath);
-                } catch (Exception e) {
-                    System.err.println("⚠️ Failed to load from ENV path, falling back to classpath.");
+                if (envPath != null && !envPath.isEmpty()) {
+                    System.out.println("🌍 Loading Firebase from ENV Path: " + envPath);
+                    try {
+                        serviceAccount = new FileInputStream(envPath);
+                    } catch (Exception e) {
+                        System.err.println("⚠️ Failed to load from ENV path, falling back to classpath.");
+                    }
                 }
             }
 
