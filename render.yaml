@@ -1,5 +1,5 @@
 services:
-  # 1. Backend (Docker)
+  # 1. Backend (Java Spring Boot)
   - type: web
     name: ip-platform-backend
     env: docker
@@ -7,23 +7,27 @@ services:
     dockerfilePath: backend/Dockerfile
     plan: free
     envVars:
-      - key: DB_URL
+      # We build the JDBC URL using the individual pieces from Render's Database
+      - key: SPRING_DATASOURCE_URL
         fromDatabase:
-          name: ip-platform-db
-          property: connectionString
-      - key: DB_USERNAME
+          name: global-ip-db
+          property: host
+      - key: SPRING_DATASOURCE_DB_NAME
         fromDatabase:
-          name: ip-platform-db
+          name: global-ip-db
+          property: database
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: global-ip-db
           property: user
-      - key: DB_PASSWORD
+      - key: SPRING_DATASOURCE_PASSWORD
         fromDatabase:
-          name: ip-platform-db
+          name: global-ip-db
           property: password
       - key: GEMINI_API_KEY
-      - key: SERPAPI_KEY
-      - key: MAIL_USERNAME
-      - key: MAIL_PASSWORD
+        sync: false
       - key: FIREBASE_CONFIG_JSON
+        sync: false
       - key: CORS_ALLOWED_ORIGINS
         value: https://ip-platform-frontend.onrender.com
 
@@ -35,16 +39,11 @@ services:
     buildCommand: npm install && npm run build
     publishDir: dist
     envVars:
+      - key: NPM_CONFIG_LEGACY_PEER_DEPS # Prevents build errors
+        value: "true"
       - key: VITE_API_BASE_URL
         value: https://ip-platform-backend.onrender.com/api
-      - key: VITE_RAZORPAY_KEY_ID
-      - key: VITE_FIREBASE_API_KEY
-      - key: VITE_FIREBASE_AUTH_DOMAIN
-      - key: VITE_FIREBASE_PROJECT_ID
-      - key: VITE_FIREBASE_STORAGE_BUCKET
-      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
-      - key: VITE_FIREBASE_APP_ID
 
 databases:
-  - name: ip-platform-db
+  - name: global-ip-db
     plan: free
