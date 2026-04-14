@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import javax.annotation.PostConstruct;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 import java.util.List;
 
 @Configuration
@@ -28,7 +29,7 @@ public class FirebaseConfig {
             String jsonConfig = System.getenv("FIREBASE_CONFIG_JSON");
             if (jsonConfig != null && !jsonConfig.isEmpty()) {
                 System.out.println("🌍 Loading Firebase from FIREBASE_CONFIG_JSON string");
-                serviceAccount = new java.io.ByteArrayInputStream(jsonConfig.getBytes());
+                serviceAccount = new ByteArrayInputStream(jsonConfig.getBytes());
             }
 
             // 🔍 CHECK 2: Try Loading from GOOGLE_APPLICATION_CREDENTIALS path
@@ -44,7 +45,7 @@ public class FirebaseConfig {
                 }
             }
 
-            // 🔍 CHECK 2: Fallback to Classpath (Localhost / Resources folder)
+            // 🔍 CHECK 3: Fallback to Classpath (Localhost / Resources folder)
             if (serviceAccount == null) {
                 System.out.println("🏠 Loading Firebase from Classpath (src/main/resources)");
                 serviceAccount = getClass().getClassLoader().getResourceAsStream("serviceAccountKey.json");
