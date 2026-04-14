@@ -49,7 +49,7 @@ public class AuthController {
     // ----------------------------------------------------------------
     // Default to localhost for stability. 
     // If testing on mobile via LAN, change this to "http://192.168.x.x:5173"
-    private final String FRONTEND_URL = "http://localhost:5173"; 
+    private final String FRONTEND_URL = "https://global-ip-platform.onrender.com"; 
 
     // ==========================================
     // 🔐 LOGIN
