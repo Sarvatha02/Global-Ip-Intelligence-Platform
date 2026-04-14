@@ -24,8 +24,16 @@ public class FirebaseConfig {
 
             InputStream serviceAccount = null;
             
-            // 🔍 CHECK 1: Try Loading from Environment Variable (Render / Production)
-            String envPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
+            // 🔍 CHECK 1: Try Loading from Environment Variable (JSON String - Render / Production)
+            String jsonConfig = System.getenv("FIREBASE_CONFIG_JSON");
+            if (jsonConfig != null && !jsonConfig.isEmpty()) {
+                System.out.println("🌍 Loading Firebase from FIREBASE_CONFIG_JSON string");
+                serviceAccount = new java.io.ByteArrayInputStream(jsonConfig.getBytes());
+            }
+
+            // 🔍 CHECK 2: Try Loading from GOOGLE_APPLICATION_CREDENTIALS path
+            if (serviceAccount == null) {
+                String envPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
             if (envPath != null && !envPath.isEmpty()) {
                 System.out.println("🌍 Loading Firebase from ENV Path: " + envPath);
                 try {

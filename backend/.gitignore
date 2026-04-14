@@ -35,8 +35,8 @@ logs/
 serviceAccountKey.json
 *-firebase-adminsdk-*.json
 
-# Application Properties
-src/main/resources/application.properties
+# Application Properties (Unhidden for easier editing)
+# src/main/resources/application.properties
 
 # Environment Variables
 .env
