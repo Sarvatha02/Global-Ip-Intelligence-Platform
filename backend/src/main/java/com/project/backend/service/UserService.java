@@ -75,25 +75,36 @@ public class UserService {
         return fileUrl;
     }
 
-    // --- 🔴 DELETE LOGIC ---
     public void deleteAvatar(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Remove the reference from the database
         user.setAvatar(null);
         userRepository.save(user);
     }
 
     @Transactional
-    public User findOrCreateFirebaseUser(String email, String name, String firebaseUid) {
+    public User findOrCreateFirebaseUser(String email, String name, String firebaseUid, String password) {
         Optional<User> userOptional = userRepository.findByEmail(email);
-        if (userOptional.isPresent()) return userOptional.get();
+        
+        if (userOptional.isPresent()) {
+            User existingUser = userOptional.get();
+            // If we have a password from the registration form, update the DB record
+            if (password != null && !password.isEmpty()) {
+                existingUser.setPassword(passwordEncoder.encode(password));
+                return userRepository.save(existingUser);
+            }
+            return existingUser;
+        }
         
         User newUser = new User();
         newUser.setName(name); 
         newUser.setEmail(email);
-        newUser.setPassword(passwordEncoder.encode(firebaseUid)); 
+        
+        
+        String finalPassword = (password != null && !password.isEmpty()) ? password : firebaseUid;
+        newUser.setPassword(passwordEncoder.encode(finalPassword)); 
+        
         newUser.setUserType("Individual"); 
         
         return userRepository.save(newUser);

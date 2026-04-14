@@ -126,10 +126,11 @@ public class AuthController {
     @PostMapping("/firebase-login")
     public ResponseEntity<?> firebaseLogin(@RequestBody Map<String, String> payload) {
         String idToken = payload.get("idToken");
+        String password = payload.get("password"); // ✅ Receive password from frontend
         if (idToken == null) return ResponseEntity.badRequest().body(Map.of("message", "ID Token missing"));
         try {
             FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
-            User user = userService.findOrCreateFirebaseUser(decodedToken.getEmail(), decodedToken.getName(), decodedToken.getUid());
+            User user = userService.findOrCreateFirebaseUser(decodedToken.getEmail(), decodedToken.getName(), decodedToken.getUid(), password);
             String localJwt = jwtUtil.generateToken(user.getEmail());
             return ResponseEntity.ok(Map.of("token", localJwt, "user", sanitizeUser(user)));
         } catch (Exception e) {
