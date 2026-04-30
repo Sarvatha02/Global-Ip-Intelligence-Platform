@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AuthLayout from './AuthLayout.jsx'; 
-import { Lock, Mail, ArrowRight, XCircle, CheckCircle, KeyRound, ArrowLeft, RefreshCw, Calculator } from 'lucide-react';
+import { Lock, Mail, ArrowRight, XCircle, CheckCircle, KeyRound, ArrowLeft, RefreshCw, Calculator, Eye, EyeOff } from 'lucide-react';
 import { auth, googleProvider } from '../firebase'; 
 import { signInWithPopup } from 'firebase/auth'; 
 
@@ -252,8 +252,8 @@ const LoginPage = ({ onLogin, onNavigate }) => {
                   autoComplete="new-password"
                   required 
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  {showPassword ? <span className="text-xs font-bold">HIDE</span> : <span className="text-xs font-bold">SHOW</span>}
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors z-10">
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
