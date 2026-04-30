@@ -49,7 +49,8 @@ public class AuthController {
     // ----------------------------------------------------------------
     // Default to localhost for stability. 
     // If testing on mobile via LAN, change this to "http://192.168.x.x:5173"
-    private final String FRONTEND_URL = "https://global-ip-platform.onrender.com"; 
+    @Value("${app.frontend.url:https://global-ipi-platform-five.onrender.com}")
+    private String FRONTEND_URL; 
 
     // ==========================================
     // 🔐 LOGIN
