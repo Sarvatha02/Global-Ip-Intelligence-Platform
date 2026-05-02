@@ -104,50 +104,56 @@ public class AIAnalysisService {
 
     // 🔥 NEW FUNCTION: Asks Google which models are available
     private String findAvailableModel() {
+        // List of models to try in order if listing fails
+        String[] fallbacks = {"gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"};
+        
         try {
             // ✅ Try v1 first (Stable)
-            String url = "https://generativelanguage.googleapis.com/v1/models?key=" + geminiApiKey.trim();
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-            
-            ObjectMapper mapper = new ObjectMapper();
-            Map<String, Object> map = mapper.readValue(response.getBody(), Map.class);
-            List<Map<String, Object>> models = (List<Map<String, Object>>) map.get("models");
-            
-            if (models != null) {
-                // Look for flash first, then pro
-                for (Map<String, Object> model : models) {
-                    String name = (String) model.get("name");
-                    List<String> methods = (List<String>) model.get("supportedGenerationMethods");
-                    
-                    if (methods != null && methods.contains("generateContent")) {
-                        if (name.contains("flash")) return name.replace("models/", "");
-                    }
-                }
-                
-                for (Map<String, Object> model : models) {
-                    String name = (String) model.get("name");
-                    List<String> methods = (List<String>) model.get("supportedGenerationMethods");
-                    if (methods != null && methods.contains("generateContent") && name.contains("gemini")) {
-                        return name.replace("models/", "");
-                    }
-                }
-            }
-            
-            // If listing succeeds but no suitable model found, try fallback
-            return "gemini-1.5-flash";
-            
+            return queryModelsAPI("https://generativelanguage.googleapis.com/v1/models?key=");
         } catch (Exception e) {
             System.err.println("Failed to list models via v1: " + e.getMessage());
-            // Fallback to v1beta for listing if v1 fails
             try {
-                String urlBeta = "https://generativelanguage.googleapis.com/v1beta/models?key=" + geminiApiKey.trim();
-                ResponseEntity<String> responseBeta = restTemplate.getForEntity(urlBeta, String.class);
-                // ... same logic for beta if needed, but usually v1 is enough now
-                return "gemini-1.5-flash";
+                // ✅ Try v1beta if v1 fails
+                return queryModelsAPI("https://generativelanguage.googleapis.com/v1beta/models?key=");
             } catch (Exception e2) {
-                return "gemini-1.5-flash"; 
+                System.err.println("Failed to list models via v1beta: " + e2.getMessage());
+                // Absolute fallback if listing fails entirely
+                return fallbacks[0]; 
             }
         }
+    }
+
+    private String queryModelsAPI(String baseUrl) throws Exception {
+        String url = baseUrl + geminiApiKey.trim();
+        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+        
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> map = mapper.readValue(response.getBody(), Map.class);
+        List<Map<String, Object>> models = (List<Map<String, Object>>) map.get("models");
+        
+        if (models != null && !models.isEmpty()) {
+            // 1. Try to find the latest Flash model (e.g., 3.0, 2.0, 1.5)
+            // Sort by name descending to get higher versions first
+            models.sort((a, b) -> ((String)b.get("name")).compareTo((String)a.get("name")));
+            
+            for (Map<String, Object> model : models) {
+                String name = (String) model.get("name");
+                List<String> methods = (List<String>) model.get("supportedGenerationMethods");
+                if (methods != null && methods.contains("generateContent") && name.contains("flash")) {
+                    return name.replace("models/", "");
+                }
+            }
+            
+            // 2. Try any Gemini model that supports generateContent
+            for (Map<String, Object> model : models) {
+                String name = (String) model.get("name");
+                List<String> methods = (List<String>) model.get("supportedGenerationMethods");
+                if (methods != null && methods.contains("generateContent") && name.contains("gemini")) {
+                    return name.replace("models/", "");
+                }
+            }
+        }
+        throw new RuntimeException("No suitable models found in list");
     }
 
     private String callGeminiAPI(String prompt, String modelName) {
