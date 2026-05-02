@@ -105,40 +105,48 @@ public class AIAnalysisService {
     // 🔥 NEW FUNCTION: Asks Google which models are available
     private String findAvailableModel() {
         try {
-            String url = "https://generativelanguage.googleapis.com/v1beta/models?key=" + geminiApiKey.trim();
+            // ✅ Try v1 first (Stable)
+            String url = "https://generativelanguage.googleapis.com/v1/models?key=" + geminiApiKey.trim();
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
             
             ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> map = mapper.readValue(response.getBody(), Map.class);
             List<Map<String, Object>> models = (List<Map<String, Object>>) map.get("models");
             
-            // Look for flash first, then pro
-            for (Map<String, Object> model : models) {
-                String name = (String) model.get("name");
-                List<String> methods = (List<String>) model.get("supportedGenerationMethods");
+            if (models != null) {
+                // Look for flash first, then pro
+                for (Map<String, Object> model : models) {
+                    String name = (String) model.get("name");
+                    List<String> methods = (List<String>) model.get("supportedGenerationMethods");
+                    
+                    if (methods != null && methods.contains("generateContent")) {
+                        if (name.contains("flash")) return name.replace("models/", "");
+                    }
+                }
                 
-                // We need a model that supports 'generateContent'
-                if (methods != null && methods.contains("generateContent")) {
-                    // Prefer Flash (Faster/Cheaper)
-                    if (name.contains("flash")) return name.replace("models/", "");
+                for (Map<String, Object> model : models) {
+                    String name = (String) model.get("name");
+                    List<String> methods = (List<String>) model.get("supportedGenerationMethods");
+                    if (methods != null && methods.contains("generateContent") && name.contains("gemini")) {
+                        return name.replace("models/", "");
+                    }
                 }
             }
             
-            // Fallback: If no flash, return any 'pro' model
-            for (Map<String, Object> model : models) {
-                String name = (String) model.get("name");
-                List<String> methods = (List<String>) model.get("supportedGenerationMethods");
-                if (methods != null && methods.contains("generateContent") && name.contains("gemini")) {
-                    return name.replace("models/", "");
-                }
-            }
-            
-            throw new RuntimeException("No suitable Gemini model found for this API Key.");
+            // If listing succeeds but no suitable model found, try fallback
+            return "gemini-1.5-flash";
             
         } catch (Exception e) {
-            System.err.println("Failed to list models: " + e.getMessage());
-            // Absolute fallback if listing fails
-            return "gemini-1.5-flash"; 
+            System.err.println("Failed to list models via v1: " + e.getMessage());
+            // Fallback to v1beta for listing if v1 fails
+            try {
+                String urlBeta = "https://generativelanguage.googleapis.com/v1beta/models?key=" + geminiApiKey.trim();
+                ResponseEntity<String> responseBeta = restTemplate.getForEntity(urlBeta, String.class);
+                // ... same logic for beta if needed, but usually v1 is enough now
+                return "gemini-1.5-flash";
+            } catch (Exception e2) {
+                return "gemini-1.5-flash"; 
+            }
         }
     }
 
@@ -148,8 +156,8 @@ public class AIAnalysisService {
                 throw new RuntimeException("Gemini API key not configured");
             }
             
-            // ✅ Uses the dynamic model name
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + geminiApiKey.trim();
+            // ✅ Uses v1 for stable production
+            String url = "https://generativelanguage.googleapis.com/v1/models/" + modelName + ":generateContent?key=" + geminiApiKey.trim();
             
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
