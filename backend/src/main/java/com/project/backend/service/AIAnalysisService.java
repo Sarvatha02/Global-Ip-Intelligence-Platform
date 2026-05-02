@@ -132,10 +132,16 @@ public class AIAnalysisService {
         List<Map<String, Object>> models = (List<Map<String, Object>>) map.get("models");
         
         if (models != null && !models.isEmpty()) {
-            // 1. Try to find the latest Flash model (e.g., 3.0, 2.0, 1.5)
-            // Sort by name descending to get higher versions first
-            models.sort((a, b) -> ((String)b.get("name")).compareTo((String)a.get("name")));
+            // 1. Try to find 1.5 Flash first (most stable free quota)
+            for (Map<String, Object> model : models) {
+                String name = (String) model.get("name");
+                List<String> methods = (List<String>) model.get("supportedGenerationMethods");
+                if (methods != null && methods.contains("generateContent") && name.contains("1.5") && name.contains("flash")) {
+                    return name.replace("models/", "");
+                }
+            }
             
+            // 2. Try any Flash model (2.0, 3.0, etc.)
             for (Map<String, Object> model : models) {
                 String name = (String) model.get("name");
                 List<String> methods = (List<String>) model.get("supportedGenerationMethods");
@@ -144,7 +150,7 @@ public class AIAnalysisService {
                 }
             }
             
-            // 2. Try any Gemini model that supports generateContent
+            // 3. Try any Gemini model (Pro, etc.)
             for (Map<String, Object> model : models) {
                 String name = (String) model.get("name");
                 List<String> methods = (List<String>) model.get("supportedGenerationMethods");
