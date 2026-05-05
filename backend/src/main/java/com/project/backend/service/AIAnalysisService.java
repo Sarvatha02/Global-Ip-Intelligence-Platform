@@ -105,18 +105,19 @@ public class AIAnalysisService {
     // 🔥 NEW FUNCTION: Asks Google which models are available
     private String findAvailableModel() {
         // List of models to try in order if listing fails
-        String[] fallbacks = {"gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"};
+        // Prioritizing 1.5 versions as they have more stable free quotas
+        String[] fallbacks = {"gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro", "gemini-2.0-flash"};
         
         try {
-            // ✅ Try v1 first (Stable)
-            return queryModelsAPI("https://generativelanguage.googleapis.com/v1/models?key=");
+            // ✅ Try v1beta first for listing as it often has more model info
+            return queryModelsAPI("https://generativelanguage.googleapis.com/v1beta/models?key=");
         } catch (Exception e) {
-            System.err.println("Failed to list models via v1: " + e.getMessage());
+            System.err.println("Failed to list models via v1beta: " + e.getMessage());
             try {
-                // ✅ Try v1beta if v1 fails
-                return queryModelsAPI("https://generativelanguage.googleapis.com/v1beta/models?key=");
+                // ✅ Try v1 as secondary for listing
+                return queryModelsAPI("https://generativelanguage.googleapis.com/v1/models?key=");
             } catch (Exception e2) {
-                System.err.println("Failed to list models via v1beta: " + e2.getMessage());
+                System.err.println("Failed to list models via v1: " + e2.getMessage());
                 // Absolute fallback if listing fails entirely
                 return fallbacks[0]; 
             }
