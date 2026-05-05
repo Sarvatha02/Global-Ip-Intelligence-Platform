@@ -221,8 +221,8 @@ public class AIAnalysisService {
                 if (e.getMessage().contains("404")) {
                     continue;
                 }
-                // For other errors (like 429 quota), throw so the outer loop can try the NEXT model
-                throw e;
+                // For other errors (like 429 quota), throw as RuntimeException so the outer loop can catch it
+                throw new RuntimeException(e.getMessage());
             }
         }
         throw new RuntimeException(lastException.getMessage());
