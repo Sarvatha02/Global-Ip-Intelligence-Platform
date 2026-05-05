@@ -164,49 +164,61 @@ public class AIAnalysisService {
     }
 
     private String callGeminiAPI(String prompt, String modelName) {
-        try {
-            if (geminiApiKey == null || geminiApiKey.isEmpty()) {
-                throw new RuntimeException("Gemini API key not configured");
-            }
-            
-            // ✅ Uses v1 for stable production
-            String url = "https://generativelanguage.googleapis.com/v1/models/" + modelName + ":generateContent?key=" + geminiApiKey.trim();
-            
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            
-            Map<String, Object> requestBody = new HashMap<>();
-            List<Map<String, Object>> contents = new ArrayList<>();
-            Map<String, Object> content = new HashMap<>();
-            List<Map<String, String>> parts = new ArrayList<>();
-            Map<String, String> part = new HashMap<>();
-            part.put("text", prompt);
-            parts.add(part);
-            content.put("parts", parts);
-            contents.add(content);
-            requestBody.put("contents", contents);
-            
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-            
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
-            
-            ObjectMapper mapper = new ObjectMapper();
-            Map<String, Object> responseMap = mapper.readValue(response.getBody(), Map.class);
-            
-            List<Map<String, Object>> candidates = (List<Map<String, Object>>) responseMap.get("candidates");
-            if (candidates != null && !candidates.isEmpty()) {
-                Map<String, Object> candidate = candidates.get(0);
-                Map<String, Object> contentMap = (Map<String, Object>) candidate.get("content");
-                List<Map<String, Object>> partsList = (List<Map<String, Object>>) contentMap.get("parts");
-                if (partsList != null && !partsList.isEmpty()) {
-                    return (String) partsList.get(0).get("text");
+        // Try v1 first, then v1beta
+        String[] versions = {"v1", "v1beta"};
+        Exception lastException = null;
+
+        for (String version : versions) {
+            try {
+                if (geminiApiKey == null || geminiApiKey.isEmpty()) {
+                    throw new RuntimeException("Gemini API key not configured");
                 }
+                
+                String url = "https://generativelanguage.googleapis.com/" + version + "/models/" + modelName + ":generateContent?key=" + geminiApiKey.trim();
+                
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                
+                Map<String, Object> requestBody = new HashMap<>();
+                List<Map<String, Object>> contents = new ArrayList<>();
+                Map<String, Object> content = new HashMap<>();
+                List<Map<String, String>> parts = new ArrayList<>();
+                Map<String, String> part = new HashMap<>();
+                part.put("text", prompt);
+                parts.add(part);
+                content.put("parts", parts);
+                contents.add(content);
+                requestBody.put("contents", contents);
+                
+                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+                
+                ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+                
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, Object> responseMap = mapper.readValue(response.getBody(), Map.class);
+                
+                List<Map<String, Object>> candidates = (List<Map<String, Object>>) responseMap.get("candidates");
+                if (candidates != null && !candidates.isEmpty()) {
+                    Map<String, Object> candidate = candidates.get(0);
+                    Map<String, Object> contentMap = (Map<String, Object>) candidate.get("content");
+                    List<Map<String, Object>> partsList = (List<Map<String, Object>>) contentMap.get("parts");
+                    if (partsList != null && !partsList.isEmpty()) {
+                        return (String) partsList.get(0).get("text");
+                    }
+                }
+                return "No response generated.";
+                
+            } catch (Exception e) {
+                lastException = e;
+                // If it's a 404, try the next version
+                if (e.getMessage().contains("404")) {
+                    continue;
+                }
+                // For other errors (like 429), break and show error
+                break;
             }
-            return "No response generated.";
-            
-        } catch (Exception e) {
-            throw new RuntimeException("Gemini API Error (" + modelName + "): " + e.getMessage());
         }
+        throw new RuntimeException("Gemini API Error (" + modelName + "): " + lastException.getMessage());
     }
     
     private void checkRateLimit(String userId) {
