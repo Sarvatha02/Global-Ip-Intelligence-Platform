@@ -222,10 +222,10 @@ public class AIAnalysisService {
                     continue;
                 }
                 // For other errors (like 429 quota), throw as RuntimeException so the outer loop can catch it
-                throw new RuntimeException(e.getMessage());
+                throw new RuntimeException("Error on " + url + ": " + e.getMessage());
             }
         }
-        throw new RuntimeException(lastException.getMessage());
+        throw new RuntimeException("All versions failed. Last error: " + lastException.getMessage());
     }
     
     private void checkRateLimit(String userId) {
