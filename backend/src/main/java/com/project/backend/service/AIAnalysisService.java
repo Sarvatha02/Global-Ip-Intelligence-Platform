@@ -99,8 +99,9 @@ public class AIAnalysisService {
                 throw new RuntimeException("All available Gemini models failed. Last error: " + lastError);
             }
             
+        } catch (Exception e) {
             historyEntry.setErrorMessage(e.getMessage());
-            response.setError("AI Analysis failed (Code Version: 1:18 PM): " + e.getMessage());
+            response.setError("AI Analysis failed (Code Version: 1:45 PM): " + e.getMessage());
             cachedModelName = null;
         } finally {
             try {
