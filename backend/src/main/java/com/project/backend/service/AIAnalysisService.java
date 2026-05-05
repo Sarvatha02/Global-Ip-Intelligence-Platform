@@ -123,9 +123,8 @@ public class AIAnalysisService {
             System.err.println("Could not fetch models from API: " + e.getMessage());
         }
         
-        // Always include known hardcoded models as fallbacks (with the 'models/' prefix)
-        // Order: 1.5 Flash -> 1.5 Pro -> 2.0 Flash -> Pro
-        String[] defaults = {"models/gemini-1.5-flash", "models/gemini-1.5-flash-latest", "models/gemini-1.5-pro", "models/gemini-pro", "models/gemini-2.0-flash-exp"};
+        // Order: Gemini Pro (Standard) -> 1.5 Flash -> 1.5 Pro -> 2.0 Flash
+        String[] defaults = {"models/gemini-pro", "models/gemini-1.5-flash", "models/gemini-1.5-flash-latest", "models/gemini-1.5-pro", "models/gemini-2.0-flash-exp"};
         for (String d : defaults) {
             if (!models.contains(d)) models.add(d);
         }
