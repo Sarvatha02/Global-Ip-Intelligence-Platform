@@ -170,19 +170,12 @@ public class AIAnalysisService {
     }
 
     private String callGeminiAPI(String prompt, String fullModelName) {
-        // fullModelName is already like "models/gemini-1.5-flash"
         String[] versions = {"v1beta", "v1"};
         Exception lastException = null;
 
         for (String version : versions) {
+            String url = "https://generativelanguage.googleapis.com/" + version + "/" + fullModelName + ":generateContent?key=" + geminiApiKey.trim();
             try {
-                if (geminiApiKey == null || geminiApiKey.isEmpty()) {
-                    throw new RuntimeException("Gemini API key not configured");
-                }
-                
-                // URL structure: https://generativelanguage.googleapis.com/{version}/{modelName}:generateContent
-                String url = "https://generativelanguage.googleapis.com/" + version + "/" + fullModelName + ":generateContent?key=" + geminiApiKey.trim();
-                
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
                 
@@ -198,7 +191,6 @@ public class AIAnalysisService {
                 requestBody.put("contents", contents);
                 
                 HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-                
                 ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
                 
                 ObjectMapper mapper = new ObjectMapper();
@@ -214,18 +206,15 @@ public class AIAnalysisService {
                     }
                 }
                 return "No response generated.";
-                
             } catch (Exception e) {
                 lastException = e;
-                // If it's a 404, try the next version
-                if (e.getMessage().contains("404")) {
-                    continue;
+                if (e.getMessage() != null && e.getMessage().contains("404")) {
+                    continue; // Try next version
                 }
-                // For other errors (like 429 quota), throw as RuntimeException so the outer loop can catch it
                 throw new RuntimeException("Error on " + url + ": " + e.getMessage());
             }
         }
-        throw new RuntimeException("All versions failed. Last error: " + lastException.getMessage());
+        throw new RuntimeException("All versions failed for " + fullModelName + ". Last error: " + (lastException != null ? lastException.getMessage() : "Unknown"));
     }
     
     private void checkRateLimit(String userId) {
