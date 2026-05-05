@@ -47,7 +47,6 @@ public class AIAnalysisService {
     private String cachedModelName = null;
 
     public AIQueryResponse analyzeWithGemini(String query, String userId) {
-        
         if (query == null || query.trim().isEmpty()) {
             throw new IllegalArgumentException("Query cannot be empty");
         }
@@ -67,29 +66,42 @@ public class AIAnalysisService {
             String contextData = gatherContextData(userId);
             String prompt = buildPrompt(query, contextData);
             
-            // ✅ STEP 1: Find a working model dynamically
-            if (cachedModelName == null) {
-                cachedModelName = findAvailableModel();
-                System.out.println("✅ Selected AI Model: " + cachedModelName);
+            // ✅ GET ALL POSSIBLE MODELS
+            List<String> availableModels = getAllAvailableModels();
+            String lastError = "";
+            boolean success = false;
+            
+            // ✅ TRY EACH MODEL UNTIL ONE WORKS
+            for (String modelName : availableModels) {
+                try {
+                    System.out.println("🤖 Attempting AI with: " + modelName);
+                    String aiResponse = callGeminiAPI(prompt, modelName);
+                    
+                    long endTime = System.currentTimeMillis();
+                    historyEntry.setResponse(aiResponse);
+                    historyEntry.setResponseTimeMs(endTime - startTime);
+                    
+                    response.setQuery(query);
+                    response.setResponse(aiResponse);
+                    response.setTimestamp(LocalDateTime.now());
+                    response.setContextUsed(true);
+                    
+                    cachedModelName = modelName; // Save the one that actually worked
+                    success = true;
+                    break; 
+                } catch (Exception e) {
+                    System.err.println("❌ Model " + modelName + " failed: " + e.getMessage());
+                    lastError = e.getMessage();
+                }
             }
             
-            // ✅ STEP 2: Call API with the found model
-            String aiResponse = callGeminiAPI(prompt, cachedModelName);
-            
-            long endTime = System.currentTimeMillis();
-            
-            historyEntry.setResponse(aiResponse);
-            historyEntry.setResponseTimeMs(endTime - startTime);
-            
-            response.setQuery(query);
-            response.setResponse(aiResponse);
-            response.setTimestamp(LocalDateTime.now());
-            response.setContextUsed(true);
+            if (!success) {
+                throw new RuntimeException("All available Gemini models failed. Last error: " + lastError);
+            }
             
         } catch (Exception e) {
             historyEntry.setErrorMessage(e.getMessage());
             response.setError("AI Analysis failed: " + e.getMessage());
-            // Clear cache if it failed, maybe model changed
             cachedModelName = null;
         } finally {
             try {
@@ -102,70 +114,64 @@ public class AIAnalysisService {
         return response;
     }
 
-    // 🔥 NEW FUNCTION: Asks Google which models are available
-    private String findAvailableModel() {
-        // List of models to try in order if listing fails
-        // Prioritizing 1.5 versions as they have more stable free quotas
-        String[] fallbacks = {"gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro", "gemini-2.0-flash"};
-        
+    private List<String> getAllAvailableModels() {
+        List<String> models = new ArrayList<>();
         try {
-            // ✅ Try v1beta first for listing as it often has more model info
-            return queryModelsAPI("https://generativelanguage.googleapis.com/v1beta/models?key=");
+            // Try to list models from API
+            models.addAll(fetchModelNamesFromAPI("https://generativelanguage.googleapis.com/v1beta/models?key="));
         } catch (Exception e) {
-            System.err.println("Failed to list models via v1beta: " + e.getMessage());
-            try {
-                // ✅ Try v1 as secondary for listing
-                return queryModelsAPI("https://generativelanguage.googleapis.com/v1/models?key=");
-            } catch (Exception e2) {
-                System.err.println("Failed to list models via v1: " + e2.getMessage());
-                // Absolute fallback if listing fails entirely
-                return fallbacks[0]; 
-            }
+            System.err.println("Could not fetch models from API: " + e.getMessage());
         }
+        
+        // Always include known hardcoded models as fallbacks (with the 'models/' prefix)
+        // Order: 1.5 Flash -> 1.5 Pro -> 2.0 Flash -> Pro
+        String[] defaults = {"models/gemini-1.5-flash", "models/gemini-1.5-flash-latest", "models/gemini-1.5-pro", "models/gemini-pro", "models/gemini-2.0-flash-exp"};
+        for (String d : defaults) {
+            if (!models.contains(d)) models.add(d);
+        }
+        
+        // If we have a cached one that worked before, move it to the top
+        if (cachedModelName != null && models.contains(cachedModelName)) {
+            models.remove(cachedModelName);
+            models.add(0, cachedModelName);
+        }
+        
+        return models;
     }
 
-    private String queryModelsAPI(String baseUrl) throws Exception {
-        String url = baseUrl + geminiApiKey.trim();
-        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-        
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> map = mapper.readValue(response.getBody(), Map.class);
-        List<Map<String, Object>> models = (List<Map<String, Object>>) map.get("models");
-        
-        if (models != null && !models.isEmpty()) {
-            // 1. Try to find 1.5 Flash first (most stable free quota)
-            for (Map<String, Object> model : models) {
-                String name = (String) model.get("name");
-                List<String> methods = (List<String>) model.get("supportedGenerationMethods");
-                if (methods != null && methods.contains("generateContent") && name.contains("1.5") && name.contains("flash")) {
-                    return name.replace("models/", "");
-                }
-            }
+    private List<String> fetchModelNamesFromAPI(String url) {
+        List<String> names = new ArrayList<>();
+        try {
+            String fullUrl = url + geminiApiKey.trim();
+            ResponseEntity<String> response = restTemplate.getForEntity(fullUrl, String.class);
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> map = mapper.readValue(response.getBody(), Map.class);
+            List<Map<String, Object>> modelsList = (List<Map<String, Object>>) map.get("models");
             
-            // 2. Try any Flash model (2.0, 3.0, etc.)
-            for (Map<String, Object> model : models) {
-                String name = (String) model.get("name");
-                List<String> methods = (List<String>) model.get("supportedGenerationMethods");
-                if (methods != null && methods.contains("generateContent") && name.contains("flash")) {
-                    return name.replace("models/", "");
+            if (modelsList != null) {
+                for (Map<String, Object> m : modelsList) {
+                    String name = (String) m.get("name");
+                    List<String> methods = (List<String>) m.get("supportedGenerationMethods");
+                    if (methods != null && methods.contains("generateContent")) {
+                        names.add(name);
+                    }
                 }
             }
-            
-            // 3. Try any Gemini model (Pro, etc.)
-            for (Map<String, Object> model : models) {
-                String name = (String) model.get("name");
-                List<String> methods = (List<String>) model.get("supportedGenerationMethods");
-                if (methods != null && methods.contains("generateContent") && name.contains("gemini")) {
-                    return name.replace("models/", "");
-                }
-            }
+            // Sort to prefer 1.5 versions
+            names.sort((a, b) -> {
+                if (a.contains("1.5") && !b.contains("1.5")) return -1;
+                if (b.contains("1.5") && !a.contains("1.5")) return 1;
+                return a.compareTo(b);
+            });
+        } catch (Exception e) {
+            // Silent fail
         }
-        throw new RuntimeException("No suitable models found in list");
+        return names;
     }
 
-    private String callGeminiAPI(String prompt, String modelName) {
-        // Try v1 first, then v1beta
-        String[] versions = {"v1", "v1beta"};
+    private String callGeminiAPI(String prompt, String fullModelName) {
+        // fullModelName is already like "models/gemini-1.5-flash"
+        String[] versions = {"v1beta", "v1"};
         Exception lastException = null;
 
         for (String version : versions) {
@@ -174,7 +180,8 @@ public class AIAnalysisService {
                     throw new RuntimeException("Gemini API key not configured");
                 }
                 
-                String url = "https://generativelanguage.googleapis.com/" + version + "/models/" + modelName + ":generateContent?key=" + geminiApiKey.trim();
+                // URL structure: https://generativelanguage.googleapis.com/{version}/{modelName}:generateContent
+                String url = "https://generativelanguage.googleapis.com/" + version + "/" + fullModelName + ":generateContent?key=" + geminiApiKey.trim();
                 
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
@@ -214,11 +221,11 @@ public class AIAnalysisService {
                 if (e.getMessage().contains("404")) {
                     continue;
                 }
-                // For other errors (like 429), break and show error
-                break;
+                // For other errors (like 429 quota), throw so the outer loop can try the NEXT model
+                throw e;
             }
         }
-        throw new RuntimeException("Gemini API Error (" + modelName + "): " + lastException.getMessage());
+        throw new RuntimeException(lastException.getMessage());
     }
     
     private void checkRateLimit(String userId) {
