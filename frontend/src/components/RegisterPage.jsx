@@ -155,7 +155,7 @@ const AuthLayout = ({ title, subtitle, children }) => (
 );
 
 // --- Main Register Component ---
-const RegisterPage = ({ onLogin }) => {
+const RegisterPage = ({ onLogin, onNavigate }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullname: '',
