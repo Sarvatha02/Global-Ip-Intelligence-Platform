@@ -227,14 +227,17 @@ const RegisterPage = ({ onLogin }) => {
       await user.reload();
       const idToken = await user.getIdToken(true);
 
-      // --- ✅ FIXED LINE 228: Sending password in payload ---
       const response = await fetch(`${API_URL}/auth/firebase-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken, password: formData.password }) 
       });
 
-      if (!response.ok) throw new Error('Backend registration failed');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Backend registration failed');
+      }
+
       const data = await response.json();
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
@@ -242,7 +245,19 @@ const RegisterPage = ({ onLogin }) => {
       navigate('/overview');
 
     } catch (error) {
-      setErrors({ submit: error.message });
+      console.error("Registration Error:", error);
+      let message = error.message;
+      
+      // Clean up common Firebase error messages
+      if (error.code === 'auth/email-already-in-use') {
+        message = 'This email is already registered. Please sign in instead.';
+      } else if (error.code === 'auth/invalid-email') {
+        message = 'The email address is invalid.';
+      } else if (error.code === 'auth/weak-password') {
+        message = 'The password is too weak.';
+      }
+      
+      setErrors({ submit: message });
     } finally {
       setIsLoading(false);
     }
@@ -259,7 +274,10 @@ const RegisterPage = ({ onLogin }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken })
       });
-      if (!response.ok) throw new Error('Backend registration failed');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Backend registration failed');
+      }
       const data = await response.json();
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
@@ -282,6 +300,14 @@ const RegisterPage = ({ onLogin }) => {
           <h2 className="text-3xl font-bold text-slate-900 mb-2">Create Account</h2>
           <p className="text-slate-500">Join 12,000+ innovators protecting their IP</p>
         </div>
+
+        {/* Error notification */}
+        {errors.submit && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700 animate-in fade-in">
+            <XCircle className="w-5 h-5 flex-shrink-0" />
+            <p className="text-sm font-bold">{errors.submit}</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
@@ -345,10 +371,15 @@ const RegisterPage = ({ onLogin }) => {
             <div className="relative flex justify-center text-sm"><span className="px-4 bg-white text-slate-500">Or sign up with</span></div>
         </div>
 
-        <button type="button" onClick={handleGoogleRegister} disabled={isLoading} className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border rounded-xl font-semibold">
+        <button type="button" onClick={handleGoogleRegister} disabled={isLoading} className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border rounded-xl font-semibold mb-6">
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
           Google
         </button>
+
+        {/* Register link */}
+        <div className="text-center pt-2">
+            <p className="text-sm text-slate-600">Already have an account? <button type="button" onClick={() => onNavigate('login')} className="text-indigo-600 hover:text-indigo-700 font-bold hover:underline">Sign In</button></p>
+        </div>
       </AuthLayout>
     </>
   );

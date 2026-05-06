@@ -101,7 +101,7 @@ public class AIAnalysisService {
             
         } catch (Exception e) {
             historyEntry.setErrorMessage(e.getMessage());
-            response.setError("AI Analysis failed (Code Version: 1:45 PM): " + e.getMessage());
+            response.setError("AI Analysis failed: " + e.getMessage());
             cachedModelName = null;
         } finally {
             try {
